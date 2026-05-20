@@ -327,11 +327,49 @@
         return;
       }
 
-      // Show success popup
-      showSuccessPopup();
+      // Get submit button and preserve original state/translations
+      const submitBtn = contactForm.querySelector('button[type="submit"]');
+      const originalHi = submitBtn.getAttribute('data-hi') || 'भेजें';
+      const originalEn = submitBtn.getAttribute('data-en') || 'Send';
 
-      // Reset form
-      contactForm.reset();
+      // Set button to sending state
+      submitBtn.setAttribute('data-hi', 'भेज रहा है...');
+      submitBtn.setAttribute('data-en', 'Sending...');
+      submitBtn.textContent = currentLang === 'hi' ? 'भेज रहा है...' : 'Sending...';
+      submitBtn.disabled = true;
+
+      // Apps Script URL
+      const scriptUrl = 'https://script.google.com/macros/s/AKfycbxNhbjBA6-ipMCm4sZLD6dF-e0jqGeaAvS0Vf2Gqxq4Bjc0ppNb2vuTdQM8OY0EloUPXQ/exec';
+
+      // Submit data using fetch with JSON payload and no-cors to bypass preflight OPTIONS
+      fetch(scriptUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: name,
+          mobile: mobile,
+          message: message
+        })
+      })
+      .then(response => {
+        // Handle success (with no-cors, this block runs successfully upon submission)
+        showSuccessPopup();
+        contactForm.reset();
+      })
+      .catch(error => {
+        console.error('Error submitting to Google Sheets:', error);
+        alert(currentLang === 'hi' ? 'संदेश भेजने में त्रुटि हुई। कृपया पुनः प्रयास करें।' : 'Error sending message. Please try again.');
+      })
+      .finally(() => {
+        // Restore submit button state
+        submitBtn.setAttribute('data-hi', originalHi);
+        submitBtn.setAttribute('data-en', originalEn);
+        submitBtn.textContent = currentLang === 'hi' ? originalHi : originalEn;
+        submitBtn.disabled = false;
+      });
     });
   }
 
